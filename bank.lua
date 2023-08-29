@@ -12,6 +12,20 @@ local USER_DATA_FILE = "data.json"
 local ACCOUNTS_FILE = "accounts.json"
 local TRANSACTIONS_FILE = "transactions.json"
 
+local HOST = "central-bank"
+
+local g = require("simple-graphics")
+local W, H = term.getSize()
+g.clear(term, colors.black)
+g.drawTextCenter(term, 1, W/2, "BANK Server @ " .. HOST, colors.lime, colors.black)
+g.drawXLine(term, 1, W, 2, colors.black, colors.gray, "-")
+
+local console = g.createConsole(W, H-2, colors.white, colors.black, "DOWN")
+
+local function log(msg)
+    g.appendAndDrawConsole(term, console, textutils.formatTime(os.time()) .. ": " .. msg, 1, 3)
+end
+
 -- Basic account functions:
 
 local function validateUsername(name)
@@ -118,10 +132,11 @@ if args[1] == "-i" then
     shell.execute("bank.lua")
 end
 
-rednet.open("modem")
-rednet.host("BANK", "central-bank")
-
+rednet.open("top")
+rednet.host("BANK", HOST)
+log("Opened Rednet and hosted BANK at host \"" .. HOST .. "\".")
+log("Now receiving requests.")
 while true do
     local remoteId, msg = rednet.receive("BANK")
-    print("Got message from " .. remoteId .. ": " .. msg)
+    log("Received message from computer ID " .. remoteId)
 end
