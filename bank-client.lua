@@ -41,7 +41,7 @@ local function requestAuth(command, data, secure)
     if secure and not client.state.securityKey then
         return {success = false, error = "Missing security key for secure request."}
     end
-    autInfo.key = client.state.securityKey
+    authInfo.key = client.state.securityKey
     return requestRaw({command = command, auth = authInfo, data = data})
 end
 
