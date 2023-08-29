@@ -263,8 +263,12 @@ local function authProtect(func, secure)
         ) then
             return {success = false, error = "Invalid credentials"}
         end
-        if secure and (not msg.auth.key or msg.auth.key ~= SECURITY_KEY) then
-            return {success = false, error = "Missing security key"}
+        if secure then
+            if not msg.auth.key then
+                return {success = false, error = "Missing security key"}
+            elseif msg.auth.key ~= SECURITY_KEY then
+                return {success = false, error = "Invalid security key"}
+            end
         end
         return func(msg)
     end
