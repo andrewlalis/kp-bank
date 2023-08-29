@@ -159,19 +159,19 @@ local function showAccountsUI()
         drawFrame()
         g.drawXLine(term, 1, 19, 2, colors.gray)
         g.drawText(term, 2, 2, "Account", colors.white, colors.gray)
-        g.drawXLine(term, 20, 40, 2, colors.lightGray)
-        g.drawText(term, 21, 2, "Name", colors.white, colors.lightGray)
-        g.drawXLine(term, 41, W, 2, colors.gray)
-        g.drawText(term, 42, 2, "Balance ($HMK)", colors.white, colors.gray)
+        g.drawXLine(term, 10, 30, 2, colors.lightGray)
+        g.drawText(term, 11, 2, "Name", colors.white, colors.lightGray)
+        g.drawXLine(term, 31, W, 2, colors.gray)
+        g.drawText(term, 32, 2, "Balance ($HMK)", colors.white, colors.gray)
         for i, account in pairs(accounts) do
             local bg = colors.blue
             if i % 2 == 0 then bg = colors.lightBlue end
             local fg = colors.white
             local y = i + 2
             g.drawXLine(term, 1, W, y, bg)
-            g.drawText(term, 1, y, account.id, fg, bg)
-            g.drawText(term, 20, y, account.name, fg, bg)
-            g.drawText(term, 41, y, tostring(account.balance), fg, bg)
+            g.drawText(term, 2, y, "..." .. string.sub(account.id, -5, -1), fg, bg)
+            g.drawText(term, 11, y, account.name, fg, bg)
+            g.drawText(term, 32, y, tostring(account.balance), fg, bg)
         end
         local event, button, x, y = os.pullEvent("mouse_click")
         if button == 1 and y > 2 and (y - 2) <= #accounts then
@@ -184,7 +184,7 @@ while true do
     local credentials = showLoginUI()
     local loginSuccess = checkCredentialsUI(credentials)
     if loginSuccess then
-        print("Login success!")
+        showAccountsUI()
     end
     return
 end
