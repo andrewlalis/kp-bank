@@ -158,15 +158,20 @@ local function showAccountUI(account)
         drawFrame()
         g.drawXLine(term, 1, W, 2, colors.gray)
         g.drawText(term, 2, 2, "Account: " .. account.name, colors.white, colors.gray)
-        g.drawText(term, W-5, 2, "Back", colors.white, colors.blue)
+        g.drawText(term, W-3, 2, "Back", colors.white, colors.blue)
 
         g.drawText(term, 2, 4, "ID", colors.gray, colors.white)
         g.drawText(term, 2, 5, account.id, colors.black, colors.white)
-        g.drawText(term, 2, 6, "Name", colors.gray, colors.white)
-        g.drawText(term, 2, 7, account.name, colors.black, colors.white)
-        g.drawText(term, 2, 8, "Balance ($HMK)", colors.gray, colors.white)
-        g.drawText(term, 2, 9, tostring(account.balance), colors.purple, colors.white)
-        local event = os.pullEvent("mouse_click")
+        g.drawText(term, 2, 7, "Name", colors.gray, colors.white)
+        g.drawText(term, 2, 8, account.name, colors.black, colors.white)
+        g.drawText(term, 2, 10, "Balance ($HMK)", colors.gray, colors.white)
+        g.drawText(term, 2, 11, tostring(account.balance), colors.yellow, colors.white)
+        local event, button, x, y = os.pullEvent("mouse_click")
+        if button == 1 then
+            if y == 2 and x >= W-3 then
+                return -- exit back to the accounts UI
+            end
+        end
     end
 end
 
