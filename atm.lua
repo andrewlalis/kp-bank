@@ -153,29 +153,47 @@ local function checkCredentialsUI(credentials)
     return true
 end
 
+local function showAccountUI(account)
+    while true do
+        drawFrame()
+        g.drawXLine(term, 1, W, 2, colors.gray)
+        g.drawText(term, 2, 2, "Account: " .. account.name, colors.white, colors.gray)
+        g.drawText(term, W-5, 2, "Back", colors.white, colors.blue)
+
+        g.drawText(term, 2, 4, "ID", colors.gray, colors.white)
+        g.drawText(term, 2, 5, account.id, colors.black, colors.white)
+        g.drawText(term, 2, 6, "Name", colors.gray, colors.white)
+        g.drawText(term, 2, 7, account.name, colors.black, colors.white)
+        g.drawText(term, 2, 8, "Balance ($HMK)", colors.gray, colors.white)
+        g.drawText(term, 2, 9, tostring(account.balance), colors.purple, colors.white)
+        local event = os.pullEvent("mouse_click")
+    end
+end
+
 local function showAccountsUI()
     local accounts, errorMsg = bankClient.getAccounts()
     while true do
         drawFrame()
         g.drawXLine(term, 1, 19, 2, colors.gray)
         g.drawText(term, 2, 2, "Account", colors.white, colors.gray)
-        g.drawXLine(term, 10, 30, 2, colors.lightGray)
+        g.drawXLine(term, 10, 35, 2, colors.lightGray)
         g.drawText(term, 11, 2, "Name", colors.white, colors.lightGray)
-        g.drawXLine(term, 31, W, 2, colors.gray)
-        g.drawText(term, 32, 2, "Balance ($HMK)", colors.white, colors.gray)
+        g.drawXLine(term, 36, W, 2, colors.gray)
+        g.drawText(term, 37, 2, "Balance ($HMK)", colors.white, colors.gray)
         for i, account in pairs(accounts) do
             local bg = colors.blue
             if i % 2 == 0 then bg = colors.lightBlue end
             local fg = colors.white
             local y = i + 2
             g.drawXLine(term, 1, W, y, bg)
-            g.drawText(term, 2, y, "..." .. string.sub(account.id, -5, -1), fg, bg)
+            g.drawText(term, 2, y, "*" .. string.sub(account.id, -5, -1), fg, bg)
             g.drawText(term, 11, y, account.name, fg, bg)
-            g.drawText(term, 32, y, tostring(account.balance), fg, bg)
+            g.drawText(term, 37, y, tostring(account.balance), fg, bg)
         end
         local event, button, x, y = os.pullEvent("mouse_click")
         if button == 1 and y > 2 and (y - 2) <= #accounts then
-            -- TODO: Do something.
+            local account = accounts[y-2]
+            showAccountUI(account)
         end
     end
 end
