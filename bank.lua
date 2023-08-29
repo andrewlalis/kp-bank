@@ -14,6 +14,7 @@ local ACCOUNTS_FILE = "accounts.json"
 local HOST = "central-bank"
 
 local RUNNING = true
+local SECURITY_KEY = nil
 
 local g = require("simple-graphics")
 local W, H = term.getSize()
@@ -233,7 +234,6 @@ end
 local function initSecurityKey()
     -- Initialize security key
     local SECURITY_KEY_FILE = "key.txt"
-    local SECURITY_KEY = nil
     if not fs.exists(SECURITY_KEY_FILE) then
         local f = io.open(SECURITY_KEY_FILE, "w")
         SECURITY_KEY = randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId()
