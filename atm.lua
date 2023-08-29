@@ -139,6 +139,7 @@ end
 local function checkCredentialsUI(credentials)
     drawFrame()
     g.drawTextCenter(term, W/2, 3, "Checking your credentials...", colors.black, colors.white)
+    os.sleep(1)
     bankClient.logIn(credentials.username, credentials.password)
     local accounts, errorMsg = bankClient.getAccounts()
     if not accounts then
@@ -147,9 +148,36 @@ local function checkCredentialsUI(credentials)
         os.sleep(2)
         return false
     end
-    g.drawTextCenter(term, W/2, 5, "Authentication successful.")
+    g.drawTextCenter(term, W/2, 5, "Authentication successful.", colors.green, colors.white)
     os.sleep(1)
     return true
+end
+
+local function showAccountsUI()
+    local accounts, errorMsg = bankClient.getAccounts()
+    while true do
+        drawFrame()
+        g.drawXLine(term, 1, 19, 2, colors.gray)
+        g.drawText(term, 2, 2, "Account", colors.white, colors.gray)
+        g.drawXLine(term, 20, 40, 2, colors.lightGray)
+        g.drawText(term, 21, 2, "Name", colors.white, colors.lightGray)
+        g.drawXLine(term, 41, W, 2, colors.gray)
+        g.drawText(term, 42, 2, "Balance ($HMK)", colors.white, colors.gray)
+        for i, account in pairs(accounts) do
+            local bg = colors.blue
+            if i % 2 == 0 then bg = colors.lightBlue end
+            local fg = colors.white
+            local y = i + 2
+            g.drawXLine(term, 1, W, y, bg)
+            g.drawText(term, 1, y, account.id, fg, bg)
+            g.drawText(term, 20, y, account.name, fg, bg)
+            g.drawText(term, 41, y, tostring(account.balance), fg, bg)
+        end
+        local event, button, x, y = os.pullEvent("mouse_click")
+        if button == 1 and y > 2 and (y - 2) <= #accounts then
+            -- TODO: Do something.
+        end
+    end
 end
 
 while true do
