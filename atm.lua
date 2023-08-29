@@ -10,6 +10,11 @@ like recording transactions.
 local g = require("simple-graphics")
 local bankClient = require("bank-client")
 
+local BANK_HOST = "central-bank"
+local SECURITY_KEY = "4514-1691-1660-7358-1884-0506-0878-7098-1511-3359-3602-3581-6910-0791-1843-5936"
+local modem = peripheral.find("modem") or error("No modem attached.")
+bankClient.init(peripheral.getName(modem), BANK_HOST, SECURITY_KEY)
+
 local W, H = term.getSize()
 
 local function drawFrame()
@@ -42,10 +47,10 @@ end
 local function tryLoginViaInput()
     drawFrame()
     g.drawTextCenter(term, W/2, 3, "Enter your username and password below.", colors.black, colors.white)
-    g.drawText(term, 22, 5, "Username", colors.black, colors.white)
-    g.drawXLine(term, 22, 40, 6, colors.lightGray)
-    g.drawText(term, 22, 8, "Password", colors.black, colors.white)
-    g.drawXLine(term, 22, 40, 9, colors.lightGray)
+    g.drawText(term, 16, 5, "Username", colors.black, colors.white)
+    g.drawXLine(term, 16, 34, 6, colors.lightGray)
+    g.drawText(term, 16, 8, "Password", colors.black, colors.white)
+    g.drawXLine(term, 16, 34, 9, colors.lightGray)
 
     g.fillRect(term, 22, 11, 9, 3, colors.green)
     g.drawTextCenter(term, W/2, 12, "Login", colors.white, colors.green)
@@ -59,13 +64,13 @@ local function tryLoginViaInput()
     while true do
         local usernameColor = colors.lightGray
         if selectedInput == "username" then usernameColor = colors.gray end
-        g.drawXLine(term, 22, 40, 6, usernameColor)
-        g.drawText(term, 22, 6, string.rep("*", #username), colors.white, usernameColor)
+        g.drawXLine(term, 16, 34, 6, usernameColor)
+        g.drawText(term, 16, 6, string.rep("*", #username), colors.white, usernameColor)
 
         local passwordColor = colors.lightGray
         if selectedInput == "password" then passwordColor = colors.gray end
-        g.drawXLine(term, 22, 40, 9, passwordColor)
-        g.drawText(term, 22, 9, string.rep("*", #password), colors.white, passwordColor)
+        g.drawXLine(term, 16, 34, 9, passwordColor)
+        g.drawText(term, 16, 9, string.rep("*", #password), colors.white, passwordColor)
 
         local event, p1, p2, p3 = os.pullEvent()
         if event == "char" then
@@ -84,19 +89,21 @@ local function tryLoginViaInput()
                 elseif selectedInput == "password" and #password > 0 then
                     password = string.sub(password, 1, #password - 1)
                 end
+            elseif keyCode == keys.tab and selectedInput == "username" then
+                selectedInput = "password"
             end
         elseif event == "mouse_click" then
             local button = p1
             local x = p2
             local y = p3
-            if y == 6 and x >= 22 and x <= 40 then
+            if y == 6 and x >= 16 and x <= 34 then
                 selectedInput = "username"
-            elseif y == 9 and x >= 22 and x <= 40 then
+            elseif y == 9 and x >= 16 and x <= 34 then
                 selectedInput = "password"
             elseif y >= 11 and y <= 13 and x >= 22 and x <= 30 then
-                return {username = username, password = password}
+                return {username = username, password = password} -- Do login
             elseif y >= 15 and y <= 17 and x >= 22 and x <= 30 then
-                return nil
+                return nil -- Cancel
             end
         end
     end
@@ -129,9 +136,27 @@ local function showLoginUI()
     end
 end
 
+local function checkCredentialsUI(credentials)
+    drawFrame()
+    g.drawTextCenter(term, W/2, 3, "Checking your credentials...", colors.black, colors.white)
+    bankClient.logIn(credentials.username, credentials.password)
+    local accounts, errorMsg = bankClient.getAccounts()
+    if not accounts then
+        bankClient.logOut()
+        g.drawTextCenter(term, W/2, 5, errorMsg, colors.red, colors.white)
+        os.sleep(2)
+        return false
+    end
+    g.drawTextCenter(term, W/2, 5, "Authentication successful.")
+    os.sleep(1)
+    return true
+end
+
 while true do
     local credentials = showLoginUI()
-    g.clear(term, colors.black)
-    print("Credentials: " .. textutils.serialize(credentials))
+    local loginSuccess = checkCredentialsUI(credentials)
+    if loginSuccess then
+        print("Login success!")
+    end
     return
 end
