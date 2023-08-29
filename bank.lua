@@ -17,7 +17,7 @@ local HOST = "central-bank"
 local g = require("simple-graphics")
 local W, H = term.getSize()
 g.clear(term, colors.black)
-g.drawTextCenter(term, 1, W/2, "BANK Server @ " .. HOST, colors.lime, colors.black)
+g.drawTextCenter(term, W/2, 1, "BANK Server @ " .. HOST, colors.lime, colors.black)
 g.drawXLine(term, 1, W, 2, colors.black, colors.gray, "-")
 
 local console = g.createConsole(W, H-2, colors.white, colors.black, "DOWN")
@@ -132,6 +132,7 @@ if args[1] == "-i" then
     shell.execute("bank.lua")
 end
 
+log("Initializing Rednet hosting...")
 rednet.open("top")
 rednet.host("BANK", HOST)
 log("Opened Rednet and hosted BANK at host \"" .. HOST .. "\".")
