@@ -55,6 +55,10 @@ local function validateUsername(name)
     )
 end
 
+local function validateTransactionDescription(desc)
+    return string.find(desc, "^%w+[ !%.%w]*$") ~= nil and #desc <= 64
+end
+
 local function userDir(name)
     return fs.combine(USERS_DIR, name)
 end
@@ -102,12 +106,28 @@ local function saveAccounts(name, accounts)
     writeJSON(userAccountsFile(name), accounts)
 end
 
+local function findAccountById(accounts, id)
+    for i, account in pairs(accounts) do
+        if account.id == id then
+            return account
+        end
+    end
+    return nil
+end
+
+local function findAccountByName(accounts, name)
+    for i, account in pairs(accounts) do
+        if account.name == name then
+            return account
+        end
+    end
+    return nil
+end
+
 local function createAccount(username, accountName)
     local accounts = getAccounts(username)
-    for i, account in pairs(accounts) do
-        if account.name == accountName then
-            return false, "Duplicate account name"
-        end
+    if findAccountByName(accounts, accountName) then
+        return false, "Duplicate account name"
     end
     local newAccount = {
         id = randomAccountId(),
@@ -140,15 +160,11 @@ end
 
 local function renameAccount(username, accountId, newName)
     local accounts = getAccounts(username)
-    local targetAccount = nil
-    for i, account in pairs(accounts) do
-        if account.id == accountId then
-            targetAccount = account
-        elseif account.name == newName then
-            return false, "Duplicate account name"
-        end
-    end
+    local targetAccount = findAccountById(accounts, accountId)
     if not targetAccount then return false, "Account not found" end
+    if findAccountByName(accounts, newName) ~= nil then
+        return false, "Duplicate account name"
+    end
     targetAccount.name = newName
     saveAccounts(accounts)
     log("Renamed user " .. username .. " account " .. accountId .. " to " .. newName)
@@ -186,6 +202,32 @@ local function renameUser(oldName, newName)
     fs.move(userDir(oldName), userDir(newName))
     log("Renamed user \"" .. oldName .. "\" to \"" .. newName .. "\".")
     return true
+end
+
+local function recordTransaction(username, accountId, amount, description)
+    if not validateTransactionDescription(description) then return false, "Invalid transaction description" end
+    if not userExists(username) then return false, "User doesn't exist" end
+    local accounts = getAccounts(username)
+    local account = findAccountById(accounts, accountId)
+    if account == nil then return false, "Account doesn't exist" end
+    if account.balance + amount < 0 then return false, "Insufficient funds" end
+    -- Everything is OK, record the transaction.
+    local tx = {
+        amount = amount,
+        description = description,
+        timestamp = os.epoch("utc")
+    }
+    local f = io.open(accountTransactionsFile(username, accountId), "a")
+    local txStr = tostring(tx.amount)..";"..tostring(tx.timestamp)..";"..tx.description
+    f:write(txStr .. string.rep(" ", 99 - #txStr) .. "\n")
+    f:close()
+    if fs.getSize(accountTransactionsFile(username, accountId)) % 100 ~= 0 then
+        log("WARNING! Transaction file for account " .. accountId .. " is not consistent!")
+    end
+    account.balance = account.balance + amount
+    saveAccounts(username, accounts)
+    os.queueEvent("bank_account_balance", username, accountId, account.balance)
+    return true, tx
 end
 
 local function initSecurityKey()
@@ -290,6 +332,17 @@ local function handleRenameUserAccount(msg)
     return {success = success, error = errorMsg}
 end
 
+local function handleRecordTransactionToAccount(msg)
+    if not msg.data or not msg.data.amount or not msg.data.description or not msg.data.accountId then
+        return {success = false, error = "Invalid request. Requires data.amount and data.description and data.accountId."}
+    end
+    local success, errorMsgOrTx = recordTransaction(msg.auth.username, msg.data.accountId, msg.data.amount, msg.data.description)
+    if not success then
+        return {success = false, error = errorMsgOrTx}
+    end
+    return {success = true, data = errorMsgOrTx}
+end
+
 -- A registry of all possible BANK requests, and their handler functions.
 local BANK_REQUESTS = {
     ["STATUS"] = handleGetStatus,
@@ -299,7 +352,8 @@ local BANK_REQUESTS = {
     ["GET_ACCOUNTS"] = authProtect(handleGetUserAccounts),
     ["CREATE_ACCOUNT"] = authProtect(handleCreateUserAccount),
     ["DELETE_ACCOUNT"] = authProtect(handleDeleteUserAccount),
-    ["RENAME_ACCOUNT"] = authProtect(handleRenameUserAccount)
+    ["RENAME_ACCOUNT"] = authProtect(handleRenameUserAccount),
+    ["RECORD_TRANSACTION"] = authProtect(handleRecordTransactionToAccount, true)
 }
 
 local function handleBankMessage(remoteId, msg)

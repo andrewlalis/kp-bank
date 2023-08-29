@@ -9,6 +9,7 @@ local client = {}
 client.state = {
     auth = nil,
     hostId = nil,
+    securityKey = nil,
     timeout = 3
 }
 
@@ -28,18 +29,28 @@ local function request(command, data)
     return requestRaw({command = command, data = data})
 end
 
-local function requestAuth(command, data)
+local function requestAuth(command, data, secure)
+    secure = secure or false
     if not client.loggedIn() then
        return {success = false, error = "Client not logged in"} 
     end
-    return requestRaw({command = command, auth = client.state.auth, data = data})
+    local authInfo = {
+        username = client.state.auth.username,
+        password = client.state.auth.password
+    }
+    if secure and not client.state.securityKey then
+        return {success = false, error = "Missing security key for secure request."}
+    end
+    autInfo.key = client.state.securityKey
+    return requestRaw({command = command, auth = authInfo, data = data})
 end
 
 -- Base functions
 
-function client.init(modemName, host)
+function client.init(modemName, host, securityKey)
     rednet.open(modemName)
     client.state.hostId = rednet.lookup("BANK", host)
+    client.state.securityKey = securityKey or nil
     return client.state.hostId ~= nil
 end
 
@@ -101,6 +112,14 @@ end
 function client.renameAccount(accountId, newName)
     local response = requestAuth("RENAME_ACCOUNT", {accountId = accountId, newName = newName})
     return response.success, response.error
+end
+
+function client.recordTransaction(accountId, amount, description)
+    local response = requestAuth("RECORD_TRANSACTION", {accountId = accountId, amount = amount, description = description}, true)
+    if not response.success then
+        return nil, response.error
+    end
+    return response.data
 end
 
 return client
