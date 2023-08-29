@@ -28,6 +28,22 @@ local function log(msg)
     g.appendAndDrawConsole(term, console, textutils.formatTime(os.time()) .. ": " .. msg, 1, 3)
 end
 
+-- Initialize security key
+local SECURITY_KEY_FILE = "key.txt"
+local SECURITY_KEY = nil
+if not fs.exists(SECURITY_KEY_FILE) then
+    local f = io.open(SECURITY_KEY_FILE, "w")
+    SECURITY_KEY = randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId()
+    f:write(SECURITY_KEY)
+    f:close()
+    log("Generated new security key.")
+else
+    local f = io.open(SECURITY_KEY_FILE, "r")
+    SECURITY_KEY = f:read("*a")
+    f:close()
+    log("Loaded stored security key.")
+end
+
 -- Helper functions
 
 local function readJSON(filename)
@@ -119,7 +135,7 @@ local function createAccount(username, accountName)
     table.insert(accounts, newAccount)
     saveAccounts(username, accounts)
     log("Created account " .. newAccount.id .. " for user " .. username)
-    return true, newAccount.id
+    return true, newAccount
 end
 
 local function deleteAccount(username, accountId)
@@ -193,7 +209,7 @@ end
 -----------------
 
 -- Helper function to wrap another function in an authentication check.
-local function authProtect(func)
+local function authProtect(func, secure)
     return function (msg)
         if (
             not msg.auth or
@@ -204,8 +220,15 @@ local function authProtect(func)
         ) then
             return {success = false, error = "Invalid credentials"}
         end
+        if secure and (not msg.auth.key or msg.auth.key ~= SECURITY_KEY) then
+            return {success = false, error = "Missing security key"}
+        end
         return func(msg)
     end
+end
+
+local function handleGetStatus(msg)
+    return {success = true}
 end
 
 local function handleCreateUser(msg)
@@ -239,6 +262,17 @@ local function handleGetUserAccounts(msg)
     return {success = true, data = getAccounts(msg.auth.username)}
 end
 
+local function handleCreateUserAccount(msg)
+    if not msg.data or not msg.data.name then
+        return {success = false, error = "Invalid request. Requires data.name."}
+    end
+    local success, errorOrAccount = createAccount(msg.auth.username, msg.data.name)
+    if not success then
+        return {success = false, error = errorOrAccount}
+    end
+    return {success = true, data = errorOrAccount}
+end
+
 local function handleDeleteUserAccount(msg)
     if not msg.data or not msg.data.accountId then
         return {success = false, error = "Invalid request. Requires data.accountId."}
@@ -255,12 +289,15 @@ local function handleRenameUserAccount(msg)
     return {success = success, error = errorMsg}
 end
 
-local function BANK_REQUESTS = {
+-- A registry of all possible BANK requests, and their handler functions.
+local BANK_REQUESTS = {
+    ["STATUS"] = handleGetStatus,
     ["CREATE_USER"] = handleCreateUser,
-    ["DELETE_USER"] = authProtect(handleDeleteUser)
-    ["RENAME_USER"] = authProtect(handleRenameUser)
-    ["GET_ACCOUNTS"] = authProtect(handleGetUserAccounts)
-    ["DELETE_ACCOUNT"] = authProtect(handleDeleteUserAccount)
+    ["DELETE_USER"] = authProtect(handleDeleteUser),
+    ["RENAME_USER"] = authProtect(handleRenameUser),
+    ["GET_ACCOUNTS"] = authProtect(handleGetUserAccounts),
+    ["CREATE_ACCOUNT"] = authProtect(handleCreateUserAccount),
+    ["DELETE_ACCOUNT"] = authProtect(handleDeleteUserAccount),
     ["RENAME_ACCOUNT"] = authProtect(handleRenameUserAccount)
 }
 
