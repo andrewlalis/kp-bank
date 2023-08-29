@@ -72,7 +72,8 @@ local function createUser(name, password)
     if not validatePassword(password) then return false, "Invalid password" end
     if userExists(name) then return false, "Username taken" end
     local userData = {
-        password = password
+        password = password,
+        createdAt = os.epoch("utc")
     }
     fs.makeDir(userDir(name))
     local dataFile = io.open(userDataFile(name), "w")
@@ -106,6 +107,15 @@ local function renameUser(oldName, newName)
     if userExists(newName) then return false, "New username is taken" end
     fs.move(userDir(oldName), userDir(newName))
     return true
+end
+
+local args = {...}
+
+if args[1] == "-i" then
+    print("Reinstalling from GitHub.")
+    fs.delete("bank.lua")
+    shell.execute("wget", "https://raw.githubusercontent.com/andrewlalis/kp-bank/main/bank.lua")
+    shell.execute("bank.lua")
 end
 
 rednet.open("modem")
