@@ -28,22 +28,6 @@ local function log(msg)
     g.appendAndDrawConsole(term, console, textutils.formatTime(os.time()) .. ": " .. msg, 1, 3)
 end
 
--- Initialize security key
-local SECURITY_KEY_FILE = "key.txt"
-local SECURITY_KEY = nil
-if not fs.exists(SECURITY_KEY_FILE) then
-    local f = io.open(SECURITY_KEY_FILE, "w")
-    SECURITY_KEY = randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId()
-    f:write(SECURITY_KEY)
-    f:close()
-    log("Generated new security key.")
-else
-    local f = io.open(SECURITY_KEY_FILE, "r")
-    SECURITY_KEY = f:read("*a")
-    f:close()
-    log("Loaded stored security key.")
-end
-
 -- Helper functions
 
 local function readJSON(filename)
@@ -205,6 +189,24 @@ local function renameUser(oldName, newName)
     return true
 end
 
+local function initSecurityKey()
+    -- Initialize security key
+    local SECURITY_KEY_FILE = "key.txt"
+    local SECURITY_KEY = nil
+    if not fs.exists(SECURITY_KEY_FILE) then
+        local f = io.open(SECURITY_KEY_FILE, "w")
+        SECURITY_KEY = randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId() .. "-" .. randomAccountId()
+        f:write(SECURITY_KEY)
+        f:close()
+        log("Generated new security key.")
+    else
+        local f = io.open(SECURITY_KEY_FILE, "r")
+        SECURITY_KEY = f:read("*a")
+        f:close()
+        log("Loaded stored security key.")
+    end
+end
+
 -- EVENT HANDLING
 -----------------
 
@@ -362,4 +364,5 @@ if args[1] == "-i" then
     shell.execute("bank.lua")
 end
 
+initSecurityKey()
 handleEvents()
