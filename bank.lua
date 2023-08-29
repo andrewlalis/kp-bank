@@ -14,11 +14,14 @@ local TRANSACTIONS_FILE = "transactions.json"
 
 local HOST = "central-bank"
 
+local RUNNING = true
+
 local g = require("simple-graphics")
 local W, H = term.getSize()
 g.clear(term, colors.black)
 g.drawTextCenter(term, W/2, 1, "BANK Server @ " .. HOST, colors.lime, colors.black)
 g.drawXLine(term, 1, W, 2, colors.black, colors.gray, "-")
+g.drawText(term, W-3, 1, "Quit", colors.white, colors.red)
 
 local console = g.createConsole(W, H-2, colors.white, colors.black, "DOWN")
 
@@ -123,6 +126,39 @@ local function renameUser(oldName, newName)
     return true
 end
 
+-- Event handling
+local function handleNetworkEvents()
+    log("Initializing Rednet hosting...")
+    rednet.open("top")
+    rednet.host("BANK", HOST)
+    log("Opened Rednet and hosted BANK at host \"" .. HOST .. "\".")
+    log("Now receiving requests.")
+    while RUNNING do
+        local remoteId, msg = rednet.receive("BANK", 3)
+        if remoteId ~= nil then
+            log("Received rednet message from computer ID " .. remoteId)
+        end
+    end
+    rednet.unhost("BANK")
+    rednet.close()
+end
+
+local function handleGuiEvents()
+    while RUNNING do
+        local event, button, x, y = os.pullEvent("mouse_click")
+        if button == 1 and y == 1 and x > W - 4 then
+            RUNNING = false
+        end
+    end
+end
+
+local function handleEvents()
+    parallel.waitForAll(
+        handleNetworkEvents,
+        handleGuiEvents
+    )
+end
+
 local args = {...}
 
 if args[1] == "-i" then
@@ -132,12 +168,4 @@ if args[1] == "-i" then
     shell.execute("bank.lua")
 end
 
-log("Initializing Rednet hosting...")
-rednet.open("top")
-rednet.host("BANK", HOST)
-log("Opened Rednet and hosted BANK at host \"" .. HOST .. "\".")
-log("Now receiving requests.")
-while true do
-    local remoteId, msg = rednet.receive("BANK")
-    log("Received message from computer ID " .. remoteId)
-end
+handleEvents()
