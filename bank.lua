@@ -21,7 +21,6 @@ g.clear(term, colors.black)
 g.drawTextCenter(term, W/2, 1, "BANK Server @ " .. HOST, colors.lime, colors.black)
 g.drawXLine(term, 1, W, 2, colors.black, colors.gray, "-")
 g.drawText(term, W-3, 1, "Quit", colors.white, colors.red)
-
 local console = g.createConsole(W, H-2, colors.white, colors.black, "DOWN")
 
 local function log(msg)
@@ -166,7 +165,7 @@ local function createUser(name, password)
     }
     fs.makeDir(userDir(name))
     writeJSON(userDataFile(name), userData) -- Flush user data file.
-    saveAccounts(userAccountsFile(name), {}) -- Flush initial accounts file.
+    saveAccounts(name, {}) -- Flush initial accounts file.
     createAccount(name, "Checking")
     createAccount(name, "Savings")
     log("Created new user: " .. name)
@@ -237,7 +236,7 @@ local function handleCreateUser(msg)
     if not msg.data or not msg.data.username or not msg.data.password then
         return {success = false, error = "Invalid request. Requires data.username and data.password."}
     end
-    local success, errorMsg = createuser(msg.data.username, msg.data.password)
+    local success, errorMsg = createUser(msg.data.username, msg.data.password)
     if not success then
         return {success = false, error = errorMsg}
     end
@@ -322,7 +321,7 @@ local function handleNetworkEvents()
     while RUNNING do
         local remoteId, msg = rednet.receive("BANK", 3)
         if remoteId ~= nil then
-            log("Received rednet message from computer ID " .. remoteId)
+            log("Received message from computer ID " .. remoteId)
             local success, response = pcall(handleBankMessage, remoteId, msg)
             if not success then
                 response = {success = false, error = "An error occurred: " .. response}
@@ -356,12 +355,11 @@ local function handleEvents()
 end
 
 local args = {...}
-
 if args[1] == "-i" then
     print("Reinstalling from GitHub.")
     fs.delete("bank.lua")
     shell.execute("wget", "https://raw.githubusercontent.com/andrewlalis/kp-bank/main/bank.lua")
-    shell.execute("bank.lua")
+    return
 end
 
 initSecurityKey()
