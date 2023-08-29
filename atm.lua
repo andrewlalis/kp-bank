@@ -21,19 +21,33 @@ end
 local function showLoginUI()
     drawFrame()
     g.drawTextCenter(term, W/2, 3, "Welcome to HandieBank ATM!", colors.green, colors.white)
-    g.drawTextCenter(term, W/2, 4, "Insert your card below, or click to login.", colors.black, colors.white)
-    g.fillRect(term, W/2 - 3, 7, 7, 3, colors.lightGray)
-    g.drawTextCenter(term, W/2, 8, "Login", colors.green, colors.lightGray)
+    g.drawTextCenter(term, W/2, 5, "Insert your card below, or click to login.", colors.black, colors.white)
+    g.fillRect(term, W/2 - 3, 7, 9, 3, colors.green)
+    g.drawTextCenter(term, W/2, 8, "Login", colors.white, colors.green)
     while true do
         local event, p1, p2, p3 = os.pullEvent()
         if event == "disk" then
-            print("Disk: "..p1)
-            return {username = "bleh", password = "bleh"}
+            local side = p1
+            if disk.hasData(side) then
+                local mountPath = disk.getMountPath(side)
+                local dataFile = fs.combine(disk.getMountPath(side), "bank-credentials.json")
+                if fs.exists(dataFile) then
+                    local f = io.open(dataFile, "r")
+                    local content = f:read("*a")
+                    f:close()
+                    return textutils.unserializeJSON(content)
+                else
+                    disk.eject(side)
+                end
+            else
+                disk.eject(side)
+            end
         elseif event == "mouse_click" then
             local button = p1
             local x = p2
             local y = p3
             if button == 1 and x >= (W/2 - 3) and x <= (W/2 + 4) and y >= 7 and y <= 9 then
+                -- TODO: Show login input elements.
                 return {username = "bleh", password = "bleh"}
             end
         end
@@ -42,4 +56,6 @@ end
 
 while true do
     local credentials = showLoginUI()
+    g.clear(term, colors.black)
+    return
 end
