@@ -309,6 +309,18 @@ local function handleGetUserAccounts(msg)
     return {success = true, data = getAccounts(msg.auth.username)}
 end
 
+local function handleGetUserAccount(msg)
+    if not msg.data or not msg.data.accountId then
+        return {success = false, error = "Invalid request. Requires data.accountId."}
+    end
+    local accounts = getAccounts(msg.auth.username)
+    local account = findAccountById(accounts, msg.data.accountId)
+    if not account then
+        return {success = false, error = "Account doesn't exist."}
+    end
+    return {success = true, data = account}
+end
+
 local function handleCreateUserAccount(msg)
     if not msg.data or not msg.data.name then
         return {success = false, error = "Invalid request. Requires data.name."}
@@ -354,6 +366,7 @@ local BANK_REQUESTS = {
     ["DELETE_USER"] = authProtect(handleDeleteUser),
     ["RENAME_USER"] = authProtect(handleRenameUser),
     ["GET_ACCOUNTS"] = authProtect(handleGetUserAccounts),
+    ["GET_ACCOUNT"] = authProtect(handleGetUserAccount),
     ["CREATE_ACCOUNT"] = authProtect(handleCreateUserAccount),
     ["DELETE_ACCOUNT"] = authProtect(handleDeleteUserAccount),
     ["RENAME_ACCOUNT"] = authProtect(handleRenameUserAccount),

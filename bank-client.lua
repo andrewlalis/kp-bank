@@ -96,6 +96,14 @@ function client.getAccounts()
     return response.data
 end
 
+function client.getAccount(accountId)
+    local response = requestAuth("GET_ACCOUNT", {accountId = accountId})
+    if not response.success then
+        return nil, response.error
+    end
+    return response.data
+end
+
 function client.createAccount(accountName)
     local response = requestAuth("CREATE_ACCOUNT", {name = accountName})
     if not response.success then
